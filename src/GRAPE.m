@@ -128,6 +128,7 @@ AssignUsage[
 
 
 Unprotect[
+	ApplyInverseDistortion,
 	LiftDistortionRank,JoinDistortions,ComposeDistortions,PerturbateDistortion,ScaleDistortion,
 	IdentityDistortion,
 	TimeScaleDistortion,VariableChangeDistortion,
@@ -143,6 +144,7 @@ Unprotect[
 
 AssignUsage[
 	{
+		ApplyInverseDistortion,
 		LiftDistortionRank,JoinDistortions,ComposeDistortions,PerturbateDistortion,ScaleDistortion,
 		IdentityDistortion,
 		TimeScaleDistortion,VariableChangeDistortion,
@@ -166,6 +168,7 @@ Unprotect[
 	IdentityDistribution,
 	ParameterDistributionMean,
 	ProductParameterDistribution,
+	HistogramParameterDistribution,
 	RandomSampleParameterDistribution,RandomMultinormalParameterDistribution,RandomUniformParameterDistribution,
 	UniformParameterDistribution,
 	TargetSelectorDistribution
@@ -177,6 +180,7 @@ AssignUsage[
 		IdentityDistribution,
 		ParameterDistributionMean,
 		ProductParameterDistribution,
+		HistogramParameterDistribution,
 		RandomSampleParameterDistribution,RandomMultinormalParameterDistribution,RandomUniformParameterDistribution,
 		UniformParameterDistribution,
 		TargetSelectorDistribution
@@ -644,6 +648,23 @@ DistortionOperator/:Format[DistortionOperator[_,format_]]:=format
 
 
 (* ::Subsubsection::Closed:: *)
+(*Apply Inverse Distortion*)
+
+
+ApplyInverseDistortion[distortion_,exampleInput_,pulseMat_]:=Module[{p,jac,dM,dL,dN,dK},
+	p=pulseMat[[All,2;;-1]];
+	jac=Last[distortion[exampleInput,True]];
+	{dM,dL,dN,dK}=Dimensions[jac];
+	(* The idea here is to cast the contraction MLNK.NK over two indeces into regular
+		matrix multiplication so that we can use LinearSolve to do all of the work *)
+	AddTimeSteps[
+		exampleInput[[All,1]],
+		ArrayReshape[LinearSolve[ArrayReshape[jac,{dM*dL,dN*dK}],ArrayReshape[p,{dM*dL,1}]],{dN,dK}]
+	]
+]
+
+
+(* ::Subsubsection::Closed:: *)
 (*Distortion Operator Tools*)
 
 
@@ -659,11 +680,11 @@ LiftDistortionRank[distortion_DistortionOperator]:=DistortionOperator[
 				jac = all[[All,2]];
 				If[Length@Dimensions@jac===3,
 					(* The user supplied Jacobian is a matrix for each channel; lift to rank 4. *)
-					jac = Transpose[ConstantArray[jac, controlRank], {2,4,1,3}];
+					jac = Transpose[Table[KroneckerDelta[in,out]*jac[[in,All,All]],{in,controlRank},{out,controlRank}], {4,2,1,3}];
 				];
 				If[Length@Dimensions@jac===5,
 					(* The user supplied Jacobian is rank 4 for each channel; remove singleton dimensions and repeat above procedure. *)
-					jac = Transpose[ConstantArray[jac[[All,All,1,All,1]], controlRank], {2,4,1,3}];
+					jac = Transpose[Table[KroneckerDelta[in,out]*jac[[in,All,1,All,1]],{in,controlRank},{out,controlRank}], {4,2,1,3}];
 				];
 			{d, jac}
 			],
@@ -870,7 +891,7 @@ VariableChangeDistortion[changeFn_List,{variableSymbols__Symbol},OptionsPattern[
 						Transpose[#,{1,3,2,4}]&@Table[
 							(* Whenever m!=n, we get no derivative, ie, different time steps do not affect each other. *)
 							If[m==n,
-								subJacobian /. Thread[{variableSymbols}->pulse[[n, 2;;-1]]],
+								subjacVal /. Thread[{variableSymbols}->pulse[[n, 2;;-1]]],
 								ConstantArray[0,{Length@changeFn, Last@Dimensions@pulse-1}]
 							],
 							{m, Length@pulse}, {n, Length@pulse}
@@ -1426,6 +1447,17 @@ RandomSampleParameterDistribution[probDist_,symbols_,n_]:=Module[{Distribution,s
 
 RandomMultinormalParameterDistribution[\[Mu]_,\[CapitalSigma]_,symbols_,n_]:=RandomSampleParameterDistribution[MultinormalDistribution[\[Mu],If[MatrixQ[\[CapitalSigma]],\[CapitalSigma],DiagonalMatrix[\[CapitalSigma]^2]]],symbols,n]
 RandomUniformParameterDistribution[minsAndMaxes_,symbols_,n_]:=RandomSampleParameterDistribution[UniformDistribution[Evaluate@minsAndMaxes],symbols,n]
+
+
+HistogramParameterDistribution[parameter_,distribution_,range_,numSamples_]:=Module[
+	{variates,probs,binLimits},
+		variates=RandomVariate[distribution,numSamples];
+		{binLimits,probs}=HistogramList[variates,range,"Probability"];
+		{
+			probs,
+			{parameter->#}&/@N[Mean/@Partition[binLimits,2,1]]
+		}
+	]
 
 
 UniformParameterDistribution[rules__Rule]:=Module[{symbols,means,widths,nums,values},
@@ -2750,6 +2782,7 @@ Protect[
 
 
 Protect[
+	ApplyInverseDistortion,
 	LiftDistortionRank,JoinDistortions,ComposeDistortions,PerturbateDistortion,ScaleDistortion,
 	IdentityDistortion,
 	TimeScaleDistortion,VariableChangeDistortion,
@@ -2767,6 +2800,7 @@ Protect[
 	IdentityDistribution,
 	ParameterDistributionMean,
 	ProductParameterDistribution,
+	HistogramParameterDistribution,
 	RandomSampleParameterDistribution,RandomMultinormalParameterDistribution,RandomUniformParameterDistribution,
 	UniformParameterDistribution,
 	TargetSelectorDistribution
