@@ -35,7 +35,7 @@ Needs["QUDevTools`"]
 $QuantumSystemsUsages = LoadUsages[FileNameJoin[{$QUDocumentationPath, "api-doc", "QuantumSystems.nb"}]];
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Usage Declaration*)
 
 
@@ -58,11 +58,12 @@ AssignUsage[CGate,$QuantumSystemsUsages];
 (*Symbolic Evaluation*)
 
 
-Unprotect[Op,QPower,QExpand,QSimplifyRules,QSimplify,ClearQSimplifyCache];
+Unprotect[Op,QPower,QExpand,QPowerExpand,QSimplifyRules,QSimplify,ClearQSimplifyCache];
 
 
 AssignUsage[QExpand,$QuantumSystemsUsages];
 AssignUsage[QPower,$QuantumSystemsUsages];
+AssignUsage[QPowerExpand,$QuantumSystemsUsages];
 AssignUsage[QSimplifyRules,$QuantumSystemsUsages];
 AssignUsage[QSimplify,$QuantumSystemsUsages];
 AssignUsage[ClearQSimplifyCache,$QuantumSystemsUsages];
@@ -138,6 +139,7 @@ CGate::dims = "Input dimensions must be an integer or list of integers";
 CGate::targctrl = "Targets and Control subsystem lists must not intersect.";
 CGate::gates = "Gate must be matrix or a list of matrices of same length as list of targets.";
 CGate::ctrlval = "Control values must be integer or list of integers same length as controls list.";
+CGate::ctrldim = "The dimension of the control system is must be greater than 1."
 
 
 (* ::Subsubsection::Closed:: *)
@@ -536,11 +538,11 @@ VecForm[obj_,opts:OptionsPattern[VecForm]]:=
 VecForm[a__,opts:OptionsPattern[VecForm]]:=Map[VecForm[#,opts]&,{a}]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Symbolic Evaluation*)
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Symbolic Operators*)
 
 
@@ -559,7 +561,7 @@ QPower[arg_?MatrixQ,n_]:=MatrixPower[arg,n]
 QPower[QPower[arg_,m_],n_]:=QPower[arg,m+n]
 QPower[Times[x_?CoefficientQ,xs__],n_]:=QPower[x,n]*QPower[Times[xs],n]
 QPower[Times[xs__,x_?CoefficientQ],n_]:=QPower[x,n]*QPower[Times[xs],n]
-QPower[Dot[a_,b__],n_]:=Dot[Sequence@@Flatten[ConstantArray[{a,b},n]]]
+QPower[CircleTimes[a_,b__],n_]:=CircleTimes[QPower[a,n],QPower[CircleTimes[b],n]]
 
 
 (* ::Text:: *)
@@ -573,13 +575,10 @@ Format[QPower[arg_,n_]]:=arg^n;
 (*Parsing symbolic Spin-Cavity expressions*)
 
 
-QExpand[expr_]:=expr//.{
-	Spin[arg_]:> Spin[arg]["Symbolic"],
-	Cavity[arg_]:> Cavity[arg]["Symbolic"]
-}
+QExpand[expr_]:=ReplaceRepeated[expr,{Spin[arg_]:> Spin[arg]["Symbolic"],Cavity[arg_]:> Cavity[arg]["Symbolic"]}]
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*QSimplify*)
 
 
@@ -587,11 +586,12 @@ Options[QSimplify]:={
 	Spin->True,
 	Cavity->True,
 	"SpinAlgebra"->Automatic,
-	"CavityAlgebra"->Automatic,
+	"CavityAlgebra"->"n",
 	"SpinHalf"->False,
 	"OrderSpin"->False,
 	"OrderCavity"->True,
-	TimeConstraint->1};
+	TimeConstraint->1,
+	QPowerExpand->True};
 
 
 QSimplify[expr_,rules_?ListQ,opts:OptionsPattern[QSimplify]]:= QSimplifyCached[expr,rules,opts]
@@ -600,6 +600,10 @@ QSimplify[expr_,opts:OptionsPattern[QSimplify]]:= QSimplify[expr,{},opts]
 
 QSimplify[Com[a_,b_,n_?Positive],rules_?ListQ,opts:OptionsPattern[]]:=QSimplify[Com[a,QSimplify[Com[a,b],opts],n-1],rules,opts]
 QSimplify[ACom[a_,b_,n_?Positive],rules_?ListQ,opts:OptionsPattern[]]:=QSimplify[ACom[a,QSimplify[ACom[a,b],opts],n-1],rules,opts]
+
+
+QPowerExpand[expr_]:=expr//.{QPower[Plus[a_,b__],n_Integer]:>Dot@@ConstantArray[Plus[a,b],n]}
+QPowerExpand[expr_,nMax_Integer]:=expr//.{QPower[Plus[a_,b__],n_?(IntegerQ[#]&&#<=nMax&)]:>Dot@@ConstantArray[Plus[a,b],n]}
 
 
 (* ::Text:: *)
@@ -611,13 +615,23 @@ Clear[QSimplifyCached];
 
 QSimplifyCached[expr_,rules_,opts:OptionsPattern[QSimplify]]:=
 	QSimplifyCached[expr,rules,opts]=
-	With[{replaceRules=Join[QSimplifyDefaultRules[opts],rules]},
-	Simplify[
-	ReplaceRepeated[
-			Simplify[QExpand[expr],TimeConstraint->OptionValue[TimeConstraint]],
-			replaceRules
-		],
-	TimeConstraint->OptionValue[TimeConstraint]]]
+	With[{
+		replaceRules=Join[QSimplifyDefaultRules[opts],rules],
+		qexpand=OptionValue[QPowerExpand]},
+	With[{
+		OuterSimplify=Which[
+						MemberQ[{True,All,\[Infinity]},qexpand],
+							Simplify[QPowerExpand[#],TimeConstraint->OptionValue[TimeConstraint]]&,
+						IntegerQ[qexpand],
+							Simplify[QPowerExpand[#,qexpand],TimeConstraint->OptionValue[TimeConstraint]]&,
+						True,
+							Simplify[#,TimeConstraint->OptionValue[TimeConstraint]]&
+						]},
+		FixedPoint[
+			OuterSimplify@ReplaceRepeated[#,Join[QSimplifyDefaultRules[opts],rules]]&,
+			Simplify[QExpand[expr],TimeConstraint->OptionValue[TimeConstraint]]
+		]
+	]]
 
 
 (* ::Text:: *)
@@ -639,10 +653,10 @@ Clear[QSimplifyDefaultRules]
 QSimplifyDefaultRules[opts:OptionsPattern[QSimplify]]:=
 	QSimplifyDefaultRules[opts]=
 		Join[
+			$QSimplifyLinearAlgebra,
 			QSimplifySpinRules[opts],
 			QSimplifyCavityRules[opts],
-			QSimplifyPower[Op],
-			$QSimplifyLinearAlgebra
+			QSimplifyPower[Op]
 		]
 
 
@@ -733,7 +747,7 @@ QSimplifyRules[opLabel_,ops_?ListQ,opts:OptionsPattern[QSimplifyRules]]:=
 	]]
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*QSimplifyRules Constructors*)
 
 
@@ -910,7 +924,7 @@ Join[
 ];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Linear Algebra Rules*)
 
 
@@ -918,18 +932,18 @@ $QSimplifyLinearAlgebra={
 (* Times *)
 Times[Plus[a_,b__],c_]:>Expand[Times[Plus[a,b],c]],
 (* Dot *)
+Dot[a_,QPower[a_,n_]]:> QPower[a,n+1],
+Dot[a_,Plus[b_,c__]]:> Dot[a,b]+Dot[a,Plus[c]],
+Dot[a_,a_]:> QPower[a,2],
+Dot[QPower[a_,n_],a_]:> QPower[a,n+1],
+Dot[QPower[a_,m_],QPower[a_,n_]]:> QPower[a,n+m],
+Dot[Plus[a_,b__],c_]:> Dot[a,c]+Dot[Plus[b],c],
 Dot[a_,n_?CoefficientQ]:> n*Dot[a],
 Dot[n_?CoefficientQ,b_]:> n*Dot[b],
-Dot[a_,Plus[b_,c__]]:> Dot[a,b]+Dot[a,Plus[c]],
-Dot[Plus[a_,b__],c_]:> Dot[a,c]+Dot[Plus[b],c],
 Dot[a_,Times[b_?CoefficientQ,c__]]:> b*Dot[a,Times[c]],
 Dot[a_,Times[c__,b_?CoefficientQ]]:> b*Dot[a,Times[c]],
 Dot[Times[a_?CoefficientQ,b__],c_]:> a*Dot[Times[b],c],
 Dot[Times[b__,a_?CoefficientQ],c_]:> a*Dot[Times[b],c],
-Dot[a_,a_]:> QPower[a,2],
-Dot[QPower[a_,n_],a_]:> QPower[a,n+1],
-Dot[a_,QPower[a_,n_]]:> QPower[a,n+1],
-Dot[QPower[a_,m_],QPower[a_,n_]]:> QPower[a,n+m],
 Dot[CircleTimes[a1_,b1__],CircleTimes[a2_,b2__]]:> CircleTimes@@MapThread[Dot,{{a1,b1},{a2,b2}}],
 (* CircleTimes *)
 KroneckerProduct[a_,b__]:> CircleTimes[a,b],
@@ -939,23 +953,23 @@ CircleTimes[Times[a_?CoefficientQ,b__],c_]:> a*CircleTimes[Times[b],c],
 CircleTimes[Times[b__,a_?CoefficientQ],c_]:> a*CircleTimes[Times[b],c],
 CircleTimes[c_,Times[a_?CoefficientQ,b__]]:> a*CircleTimes[c,Times[b]],
 CircleTimes[c_,Times[b__,a_?CoefficientQ]]:> a*CircleTimes[c,Times[b]],
+(* Conjugate *)
+Conjugate[Plus[a_,b__]]:>Plus@@Map[Conjugate,{a,b}],
+Conjugate[Times[a_,b__]]:>Times@@Map[Conjugate,{a,b}],
+Conjugate[Dot[a_,b__]]:>Dot@@Map[Conjugate,{a,b}],
+Conjugate[CircleTimes[a_,b__]]:>CircleTimes@@Map[Conjugate,{a,b}],
+Conjugate[Transpose[a_]]:> Transpose[Conjugate[a]],
 (* Transpose *)
 Transpose[a_?CoefficientQ]:> a,
 Transpose[Transpose[a_]]:> a,
 Transpose[Plus[a_,b__]]:> Plus@@Map[Transpose,{a,b}],
 Transpose[Times[a_,b__]]:> Times@@Map[Transpose,{a,b}],
 Transpose[Dot[a_,b__]]:> Dot@@Map[Transpose,Reverse[{a,b}]],
-Transpose[CircleTimes[a__]]:>CircleTimes@@Map[Transpose,a],
+Transpose[CircleTimes[a_,b__]]:>CircleTimes@@Map[Transpose,{a,b}],
 (* ConjugateTranspose *)
 ConjugateTranspose[a_?CoefficientQ]:> Conjugate[a],
 ConjugateTranspose[ConjugateTranspose[a_]]:> a,
 ConjugateTranspose[a_]:> Transpose[Conjugate[a]],
-Conjugate[Transpose[a_]]:> Transpose[Conjugate[a]],
-(* Conjugate *)
-Conjugate[Plus[a_,b__]]:>Plus@@Map[Conjugate,{a,b}],
-Conjugate[Times[a_,b__]]:>Times@@Map[Conjugate,{a,b}],
-Conjugate[Dot[a_,b__]]:>Dot@@Map[Conjugate,{a,b}],
-Conjugate[CircleTimes[a__]]:>CircleTimes@@Map[Conjugate,{a}],
 (* Com *)
 Com[a_?CoefficientQ,b_]:> 0,
 Com[a_,b_?CoefficientQ]:> 0,
@@ -1092,7 +1106,7 @@ $QSimplifyCavity=
 $QSimplifyCavityOrdering=
 	QSimplifyNormalOrder[
 		Cavity,
-		{Cavity["N"],Cavity["c"],Cavity["a"]}]
+		{Cavity["c"],Cavity["a"],Cavity["n"]}]
 
 
 (* ::Text:: *)
@@ -1122,14 +1136,17 @@ $QSimplifyCavityAC={Cavity["n"]:> Cavity["c"].Cavity["a"]};
 (*Quantum Gates*)
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Controlled Gates*)
 
 
 Options[CGate]={Control->1};
 
 
-CGate[gate_,targ_,ctrl_,opts:OptionsPattern[]]:=
+CGateGuard=Or[MatrixQ[#],And[ListQ[#],AllQ[MatrixQ,#]]]&;
+
+
+CGate[gate_?CGateGuard,targ_,ctrl_,opts:OptionsPattern[]]:=
 	With[{
 		d=If[MatrixQ[gate],
 			Length[gate],
@@ -1141,7 +1158,7 @@ CGate[gate_,targ_,ctrl_,opts:OptionsPattern[]]:=
 CGate[dims_,gate_,targ_,ctrl_,opts:OptionsPattern[]]:=
 	If[
 		CGateArgTests[dims,gate,targ,ctrl],
-		If[IntegerQ[dims],	
+		If[IntegerQ[dims],
 			CGate[ConstantArray[dims,Max[targ,ctrl]],gate,targ,ctrl,opts],
 		With[{
 			gates=If[MatrixQ[gate],{gate},gate],
@@ -1152,7 +1169,7 @@ CGate[dims_,gate_,targ_,ctrl_,opts:OptionsPattern[]]:=
 	,Null]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Controlled-Gate Utility Functions*)
 
 
@@ -1176,9 +1193,13 @@ CGateControl[ctrls_List,ctrlval_]:=
 
 
 CGateArgTests[dims_,gate_,targs_,ctrls_]:=
-	Which[
+	Which[		
 		Not[Or[IntegerQ[dims],AllQ[IntegerQ,dims]]],
 			Message[CGate::dims];False,
+		dims===1,
+			Message[CGate::ctrldim];False,
+		And[ListQ[dims],Not[Cases[Part[dims,Flatten[{ctrls}]],1]==={}]],
+			Message[CGate::ctrldim];False,
 		Not[Intersection[Flatten[{targs}],Flatten[{ctrls}]]==={}],
 			Message[CGate::targctrl];False,
 		Not[Or[
@@ -1431,7 +1452,7 @@ End[];
 
 
 Protect[Spin,Cavity,QState,KetForm,VecForm,Ket,Bra,KetBra];
-Protect[Op,QPower,QExpand,QSimplifyRules,QSimplify,ClearQSimplifyCache];
+Protect[Op,QPower,QExpand,QPowerExpand,QSimplifyRules,QSimplify,ClearQSimplifyCache];
 Protect[CGate];
 Protect[EntropyH,EntropyS,RelativeEntropyS,MutualInformationS];
 Protect[Purity,PNorm,Fidelity,EntangledQ,Concurrence,EntanglementF];

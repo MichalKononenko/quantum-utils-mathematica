@@ -84,7 +84,7 @@ Unprotect[
 	PulseRemoveKeys,PulseReplaceKey,PulseHasKey,
 	PulsePhaseRotate,PulsePhaseRamp,PulseDivide,PulseModulate,
 	RandomPulse,RandomSmoothPulse,GenerateAnnealedPulse,AnnealingGenerator,GaussianTailsPulse,
-	LegalizePulse,NormalizePulse
+	LegalizePulse,LegalizeQuadraturePulse,NormalizePulse
 ];
 
 
@@ -96,7 +96,7 @@ AssignUsage[
 		PulseRemoveKeys,PulseReplaceKey,PulseHasKey,
 		PulsePhaseRotate,PulsePhaseRamp,PulseDivide,PulseModulate,
 		RandomPulse,RandomSmoothPulse,GenerateAnnealedPulse,AnnealingGenerator,GaussianTailsPulse,
-		LegalizePulse,NormalizePulse
+		LegalizePulse,LegalizeQuadraturePulse,NormalizePulse
 	},
 	$GRAPEUsages
 ];
@@ -430,7 +430,7 @@ PulseDivide[pulse_Pulse,n_]:=
 
 PulsePhaseRotate[pulse_,\[Phi]_]:=
 	Module[{xy=pulse[Pulse],a\[Theta]},
-		a\[Theta]={Norm/@xy,\[Phi]+(ArcTan[First@#,Last@#]&/@xy)}\[Transpose];
+		a\[Theta]={Norm/@xy,\[Phi]+(If[First@#==0&&Last@#==0,0,ArcTan[First@#,Last@#]]&/@xy)}\[Transpose];
 		xy={First[#]Cos[Last@#],First[#]Sin[Last@#]}&/@a\[Theta];
 		PulseReplaceKey[pulse,Pulse,xy]
 	]
@@ -486,10 +486,13 @@ GaussianTailsPulse[dt_,T_,riseTime_,Area->area_]:=
 	Module[{\[Sigma],NI,fun,pulse},
 		\[Sigma]=riseTime/3;
 		fun[t_]:=Piecewise[{{1,riseTime<t<T-riseTime},{Exp[-(t-riseTime)^2/(2\[Sigma]^2)],t<=riseTime},{Exp[-(t-T+riseTime)^2/(2\[Sigma]^2)],t>=T-riseTime}}];
-		NI=NIntegrate[fun[t],{t,0,T}];
-		pulse=Table[{area*fun[t-dt/2]/NI,0},{t,0,T,dt}];
-		(*Correct the area now that we have a descent shape*)
-		pulse=area*pulse/(dt*Total@Flatten@pulse);
+		If[area!=0,
+			NI=NIntegrate[fun[t],{t,0,T}];
+			pulse=Table[{area*fun[t-dt/2]/NI,0},{t,0,T,dt}];
+			(*Correct the area now that we have a descent shape*)
+			pulse=area*pulse/(dt*Total@Flatten@pulse);,
+			pulse=Table[{0,0},{t,0,T,dt}];
+		];
 		AddTimeSteps[dt, pulse]
 	];
 GaussianTailsPulse[dt_,T_,riseTime_,Max->max_]:=Module[
@@ -511,6 +514,14 @@ LegalizePulse[profile_][pulse_,controlRange_]:=Table[
 		Sequence@@MapThread[Clip, {pulse[[n,2;;]],profile[[n]]*controlRange}, 1]
 	},
 	{n,Length@pulse}
+]
+
+
+LegalizeQuadraturePulse[Rmax_][pulse_,controlRange_]:=Module[
+	{dts=pulse[[All,1]],r,amps=pulse[[All,2;;]]},
+		r=Norm/@amps;
+		amps=amps*Clip[Rmax/r,{0,1}];
+		AddTimeSteps[dts,amps]
 ]
 
 
@@ -635,7 +646,7 @@ UtilityGradient[pulse_,Hint_,Hcontrol_,target_CoherentSubspaces]:=
 	];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Distortions*)
 
 
@@ -923,7 +934,7 @@ TimeScaleDistortion[multiplier_]:=DistortionOperator[
 ]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Linear Distortions*)
 
 
@@ -1089,6 +1100,17 @@ Selectable->False]\)
 	],
 	Format@HoldForm[ExponentialDistortion[\[Tau]c]]
 ];
+
+
+ExponentialDistortion[\[Tau]c_,mult_,extra_]:=Module[{distortion},
+	distortion[nInput_,dt_]:=distortion[nInput,dt]=LiftDistortionRank@ExponentialDistortion[\[Tau]c,nInput,mult*(nInput+extra),dt,dt/mult];
+	DistortionOperator[
+		Function[{pulse,computeJac},
+			distortion[Length@pulse,pulse[[1,1]]][pulse,computeJac]
+		],
+		Format@HoldForm[ExponentialDistortion[\[Tau]c]]
+	]
+]
 
 
 (* ::Subsubsection::Closed:: *)
@@ -2770,7 +2792,7 @@ Protect[
 	PulseRemoveKeys,PulseReplaceKey,PulseHasKey,
 	PulsePhaseRotate,PulsePhaseRamp,PulseDivide,PulseModulate,
 	RandomPulse,RandomSmoothPulse,GenerateAnnealedPulse,AnnealingGenerator,GaussianTailsPulse,
-	LegalizePulse,NormalizePulse
+	LegalizePulse,LegalizeQuadrature,NormalizePulse
 ];
 
 
