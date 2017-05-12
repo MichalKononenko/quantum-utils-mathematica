@@ -415,7 +415,7 @@ RunTest[name_ -> expr_] := Module[{result},
 	];
 
 	If[Not[TrueQ @ result],
-		Print[name <> ":\t" <> (result /. {False -> "Failed", $Failed -> "Error", _ -> "Did something very weird indeed."})]
+		Print[name <> ":\t" <> (result /. {False -> "Failed", $Failed -> "Error", _ -> "Returned unexpected result: " <> ToString[result]})]
 	];
 
 	name -> (result /. {

@@ -88,6 +88,7 @@ TestResults[]:=Join@@Map[TestResults,$UnitTestManifest]
 
 $UnitTestManifest={
 	"Predicates",
+	"GRAPE",
 	"Tensor",
 	"QuantumSystems",
 	"QuantumChannel",

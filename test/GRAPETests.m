@@ -28,17 +28,12 @@
 
 BeginPackage["GRAPETests`"];
 
-
-(* ::Text:: *)
-(*The following packages are needed, but their contexts should not be loaded globally.*)
-
-
+Needs["GRAPE`"];
 Needs["QUDevTools`"];
 Needs["QuantumSystems`"];
-Needs["GRAPE`"];
+Needs["Tensor`"];
 
-
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Results*)
 
 
@@ -58,6 +53,27 @@ End[];
 
 Begin["`UnitTests`"];
 
+(* ::Subsection:: *)
+(*Control Problem Object*)
+
+(* ::Subsubsection:: *)
+(*CanRun*)
+
+TestCase[$RegisteredTests, "ControlProblem:CanRun:BadControlRanges",
+	With[
+		{
+			controlRanges = {{-1, 1}},
+			controlHamiltonians = {IdentityMatrix[3], IdentityMatrix[3]}
+		},
+		Not[CanRun[
+				ControlProblem[
+				ControlRanges -> controlRanges,
+				ControlHamiltonians -> controlHamiltonians
+			]
+		]]
+	]
+]
+
 
 (* ::Subsection:: *)
 (*Pulse Object*)
@@ -73,14 +89,15 @@ TestCase[$RegisteredTests, "PulseDataStructure:InitializeHControl",
 		p = Pulse[
 			ControlHamiltonians -> HControl
 		];
-		ControlHamiltonians[p] == Hinternal;
+		p[ControlHamiltonians] == HControl
 	]
-]
-TestCase[$RegisteredTests, "PulseDataStrucutre:InitializeHInternal",
+];
+
+TestCase[$RegisteredTests, "GRAPE:Pulse",
 	Module[{p, Hinternal},
 	Hinternal = RandomHermitian[8];
-	p = Pulse[InternalHamiltonian -> Hinternal];
-	InternalHamiltonian[p] == Hinternal;
+	p = Pulse[InternalHamiltonian ->  Hinternal];
+	p[InternalHamiltonian] == Hinternal
 ]];
 
 TestCase[$RegisteredTests, "PulseDataStructure:InitializeUtarget",
@@ -89,7 +106,22 @@ TestCase[$RegisteredTests, "PulseDataStructure:InitializeUtarget",
 		p = Pulse[
 			Target -> target
 		];
-		Target[p] == target;
+		p[Target] == target
+	]
+];
+
+
+(* ::Subsubsection:: *)
+(*Pulse Modification*)
+
+
+TestCase[$RegisteredTests, "PulseDataStructure:PulseHasKey",
+	Module[{p, HControl},
+		HControl = {RandomHermitian[8], RandomHermitian[8]};
+		p = Pulse[
+			ControlHamiltonians -> HControl
+		];
+		PulseHasKey[p, ControlHamiltonians]
 	]
 ];
 
@@ -103,19 +135,21 @@ TestCase[$RegisteredTests, "PulseDataStructure:InitializeUtarget",
 
 
 TestCase[$RegisteredTests, "FindPulse:SimplePulse",
-	Module[{
-		pulse, Hint, HControl, controlRange, initialGuess, target, \[Phi]target
+	With[
+	{
+		Hint = PauliMatrix[3],
+		HControl = 2 \[Pi]*{PauliMatrix[1], PauliMatrix[2]},
+		controlRange = {{-1, 1}, {-1, 1}},
+		initialGuess = RandomSmoothPulse[1, 10, {{-1, 1}, {-1, 1}}],
+		target = PauliMatrix[1],
+		\[Phi]target = 0.99
 	},
-		Hint = TP[Z];
-		HControl = 2\[Pi] * {TP[X], TP[Y]};
-		controlRange = {{-1, 1}, {-1, 1}};
-		target = RandomUnitary[2];
-		\[Phi]target = 0.99;
-		initialGuess = RandomSmoothPulse[1, 10, controlRange];
-		pulse = FindPulse[initialGuess, target, \[Phi]target, controlRange, HControl, Hint];
-		Re[Tr[pulse[Target] . target / 2]] >= \[Phi]target;
-];
-]
+	FindPulse[
+		initialGuess, target, \[Phi]target, controlRange, HControl,
+		Hint, MonitorFunction -> Off, SkipChecks -> True
+	][Target] == target
+]];
+
 
 
 (* ::Subsubsection:: *)
@@ -126,17 +160,16 @@ TestCase[$RegisteredTests, "FindPulse:Repetitions",
 	Module[{
 		pulse, repetitions, Hint, HControl, controlRange, initialGuess, target, \[Phi]target
 	},
-		Hint = TP[Z];
+		Hint = PauliMatrix[3];
 		repetitions = 10;
-		HControl = 2\[Pi] * {TP[X], TP[Y]};
+		HControl = 2\[Pi] * {PauliMatrix[1], PauliMatrix[2]};
 		controlRange = {{-1, 1}, {-1, 1}};
-		target = RandomUnitary[2];
+		target = PauliMatrix[1];
 		\[Phi]target = 0.99;
 		initialGuess = RandomSmoothPulse[1, 10, controlRange];
-		pulse = FindPulse[initialGuess, target, \[Phi]target, controlRange, HControl, Hint, Repetitions -> repetitions];
-		Re[Tr[pulse[Target] . target / 2]] >= \[Phi]target;
-];
-]
+		pulse = FindPulse[initialGuess, target, \[Phi]target, controlRange, HControl, Hint, Repetitions -> repetitions, MonitorFunction -> Off];
+		pulse[Target] == target
+]];
 
 
 End[];

@@ -74,6 +74,27 @@ AssignUsage[
 
 
 (* ::Subsection::Closed:: *)
+(*Control Problems*)
+
+
+Unprotect[
+	ControlProblem,
+	ControlRanges,
+	DesiredFidelity,
+	CanRun
+];
+
+
+AssignUsage[
+	{
+		ControlProblem,
+		CanRun
+	},
+	$GRAPEUsages
+]
+
+
+(* ::Subsection::Closed:: *)
 (*Pulses*)
 
 
@@ -327,11 +348,109 @@ JCAMPCalibrationFactor::usage = "JCAMPCalibrationFactor is an ExportJCAMP option
 Begin["`Private`"];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
+(*Abstract Object Manipulation*)
+
+
+RemoveKeys[object_, headers__]:=Select[object,Not[MemberQ[{headers},#[[1]]]]&];
+
+
+ReplaceKey[object_,header_,newval_]:=Append[RemoveKeys[object,header],header->newval];
+
+
+HasKey[object_,key_]:=MemberQ[object[[All,1]],key];
+
+
+(* ::Subsection:: *)
+(*Control Problems*)
+
+
+(* ::Subsubsection:: *)
+(*Control Problem Object*)
+
+Options[ControlProblem] = {
+	ControlRanges -> {{-1, 1}},
+	ControlHamiltonians -> IdentityMatrix[2],
+	InternalHamiltonian -> IdentityMatrix[2]
+}
+
+
+ControlProblem/:ControlProblem[args___][key_] := Association[args][key];
+
+
+Unprotect@ControlProblem
+
+(* ::Text:: *)
+(* Describes how to print out the Control Problem *)
+
+ControlProblem/:Format[ControlProblem[args__Rule]] := Module[{modProblem},
+	modProblem=ControlProblem[args];
+	If[
+		HasKey[modProblem, ControlHamiltonians], 
+		modProblem=ReplaceKey[modProblem, ControlHamiltonians, MatrixListForm[modProblem[ControlHamiltonians]]]
+	];
+	If[
+		HasKey[modProblem,InternalHamiltonian],
+		modProblem=ReplaceKey[modProblem,InternalHamiltonian,MatrixForm[modProblem[InternalHamiltonian]]]
+	];
+	If[
+		HasKey[modProblem,Target]&&MatrixQ[modProblem[Target]],
+		modProblem=ReplaceKey[modProblem,Target,MatrixForm[modProblem[Target]]]
+	];
+	modProblem=ReplaceKey[modProblem, CanRun, ToString[CanRun[modProblem]]];
+	If[
+		HasKey[modProblem, DesiredFidelity],
+		modProblem=ReplaceKey[modProblem, DesiredFidelity, ToString[modProblem[DesiredFidelity]]]
+	];
+	If[
+		HasKey[modProblem, ParameterDistribution],
+		modProblem=ReplaceKey[modProblem, ParameterDistribution, modProblem[ParameterDistribution]]
+	];
+	Grid[
+		Prepend[
+			{#,#/.List@@modProblem}&/@
+			{DesiredFidelity,PenaltyValue,ExitMessage,Target,InternalHamiltonian,ControlHamiltonians,AmplitudeRange,TimeSteps,Pulse,ParameterDistribution,DistortionOperator,CanRun},
+			{Head,Value}
+		],
+		Alignment->{Left,Top},
+		Dividers->All,
+		ItemSize->{{13,32},Automatic},
+		Background->{{LightBlue,None},{LightGreen,None}},
+		ItemStyle->{Automatic,{"Subsubsubsection"}},
+		Spacings->{2,.8}
+	]
+];
+
+(* ::Subsubsection:: *)
+(*CanRun*)
+
+ControlRangesEqualToNumberOfHamiltonians[problem_] := If[
+	And[HasKey[problem, ControlHamiltonians], HasKey[problem, InternalHamiltonian]],	
+	Equal[
+		Length[problem[ControlRanges]], Length[problem[ControlHamiltonians]]
+	],
+	False
+]
+
+HamiltoniansEqualInSize[problem_] := Equal @@ Map[
+	Dimensions, Join[problem[ControlHamiltonians], problem[InternalHamiltonian]]
+];
+
+CanRun[problem_] := If[
+	And[HasKey[problem, ControlHamiltonians], HasKey[problem, InternalHamiltonian]], 
+	And[
+		ControlRangesEqualToNumberOfHamiltonians[problem],
+		HamiltoniansEqualInSize[problem];
+	],
+	False
+];
+
+
+(* ::Subsection:: *)
 (*Pulses*)
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Pulse Object*)
 
 
@@ -405,17 +524,17 @@ AddTimeSteps[dts_,pulse_]:=If[ListQ@dts,Prepend[pulse\[Transpose],dts]\[Transpos
 SplitPulse[pulse_]:={pulse[[All,1]],pulse[[All,2;;-1]]}
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Pulse Key Modification*)
 
 
-PulseRemoveKeys[pulse_Pulse,headers__]:=Select[pulse,Not[MemberQ[{headers},#[[1]]]]&]
+PulseRemoveKeys[pulse_Pulse,headers__]:=RemoveKeys[pulse, headers];
 
 
-PulseReplaceKey[pulse_Pulse,header_,newval_]:=Append[PulseRemoveKeys[pulse,header],header->newval]
+PulseReplaceKey[pulse_Pulse,header_,newval_]:=ReplaceKey[pulse, header, newval];
 
 
-PulseHasKey[pulse_Pulse,key_]:=MemberQ[pulse[[All,1]],key]
+PulseHasKey[pulse_Pulse,key_]:=HasKey[pulse, key];
 
 
 (* ::Subsubsection::Closed:: *)
@@ -533,11 +652,11 @@ With[{tp = Transpose[pulse[[All, -2;;]]]},
 ];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Utility Function and Targets*)
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Unitary Propagators*)
 
 
@@ -662,7 +781,6 @@ Utility[Ucalc_,target_DensityTransfer]:=
 UtilityGradient[pulse_,Hint_,Hcontrol_,target_DensityTransfer]:=
 	Module[
 		{
-			dim=Length[Hint],
 			\[Rho]forw,\[Rho]back,derivs,unitaries,
 			\[Rho]0=target[[1]],
 			\[Rho]1=target[[2]],
@@ -849,7 +967,7 @@ ScaleDistortion[distortion_DistortionOperator,timeScale_,amplitudeScale_?Numeric
 			computeJac===False,
 				Transpose[Prepend[ConstantArray[amplitudeScale,Length[#]-1],timeScale]*#]&[Transpose@distortion[pulse,False]],
 			computeJac===True,
-				Module[{outpulse,jac,scale},
+				Module[{outpulse,jac},
 					{outpulse,jac}=distortion[pulse,True];
 					{
 						Transpose[Prepend[ConstantArray[amplitudeScale,Length[#]-1],timeScale]*#]&[Transpose@outpulse],
@@ -868,7 +986,7 @@ ScaleDistortion[distortion_DistortionOperator,timeScale_,amplitudeScale_List]:=D
 			computeJac===False,
 				Transpose[Prepend[amplitudeScale,timeScale]*Transpose[distortion[pulse,False]]],
 			computeJac===True,
-				Module[{outpulse,jac,scale},
+				Module[{outpulse,jac},
 					{outpulse,jac}=distortion[pulse,True];
 					{
 						Transpose[Prepend[amplitudeScale,timeScale]*Transpose[outpulse]],
@@ -1005,7 +1123,7 @@ ConvolutionDistortion[integral_,numInput_,numOutput_,dtOutput_]:=
 		]
 	];
 ConvolutionDistortion[kernel_,numInput_,numOutput_,dtInput_,dtOutput_]:=
-	Module[{integral, m, n},
+	Module[{integral},
 		(* If Mathematica can't do the integral, the integral formula will just have to be 
 		evaluated in each entry of discreteKernel... *)
 		(* If Mathematica can't do the integral, the integral formula will just have to be 
@@ -1291,7 +1409,7 @@ LinearDEDistortion[A_,b_,outputComponent_,numInput_?IntegerQ,numOutput_?IntegerQ
 
 
 LinearDEDistortion[A_,b_,outputComponent_,dtsInput_List,dtsOutput_List,OptionsPattern[]]:=Module[
-	{phi,nc,normA,d,U,c,v,w,ts,taus,numInput,numOutput,dtsComp,P,compensationTimeStep,ratios},
+	{phi,nc,normA,d,U,c,v,w,ts,taus,numInput,numOutput,dtsComp,P,ratios},
 	nc=Length[A];
 
 	If[OptionValue[CompensationTimeSteps]=!=None,
@@ -1363,7 +1481,7 @@ LinearDEDistortion[A_,b_,outputComponent_,dtsInput_List,dtsOutput_List,OptionsPa
 
 (*This pattern is not documented; it should be accessed through the options*)
 LinearDEDistortion[A_,b_,outputComponent_,dtsInput_,dtsOutput_,dtsComp_List,ratios_List,P_?MatrixQ]:=Module[
-	{phi,deConv,nc,normA,Ainv,d,U,c,v,w,ts,taus,numInput,numOutput,numModInput,compensationTimeStep,AUs},
+	{phi,deConv,nc,normA,Ainv,d,U,c,v,w,ts,taus,numInput,numOutput,numModInput,AUs},
 
 	nc=Length[A];
 	numInput=Length@dtsInput;
@@ -1455,7 +1573,7 @@ LinearDEDistortion[A_,b_,outputComponent_,dtsInput_,dtsOutput_,dtsComp_List,rati
 (*FrequencySpaceDistortion*)
 
 
-FrequencySpaceDistortion[freqs_List,dt_,M_] := Module[{c,s,numN,distortionFn},
+FrequencySpaceDistortion[freqs_List,dt_,M_] := Module[{c,s,numN},
 	numN = Length[freqs];
 	c = Table[Cos[(m-1)*dt*2*\[Pi]*N@freqs[[n]]], {m,M}, {n,numN}];
 	s = Table[Sin[(m-1)*dt*2*\[Pi]*N@freqs[[n]]], {m,M}, {n,numN}];
@@ -1482,7 +1600,7 @@ FrequencySpaceDistortion[freqs_List,dt_,M_] := Module[{c,s,numN,distortionFn},
 (*CompositePulseDistortion*)
 
 
-CompositePulseDistortion[divisions_,sequence_]:=Module[{symbols,indeces,seq,doreverse},
+CompositePulseDistortion[divisions_,sequence_]:=Module[{symbols,seq,doreverse},
 	symbols=First/@divisions;
 	doreverse[symb_]:=Assuming[And@@(#>0&/@symbols),Simplify[symb<0]];
 	seq = If[Head[#]===List,#,{#,0}]&/@sequence;
@@ -1538,7 +1656,7 @@ ParameterDistributionMean[gdist_]:=Module[{ps,reps,symbs,mean},
 ]
 
 
-RandomSampleParameterDistribution[probDist_,symbols_,n_]:=Module[{Distribution,symb},
+RandomSampleParameterDistribution[probDist_,symbols_,n_]:=Module[{symb},
 	symb=If[Head@symbols===List,symbols,{symbols}];
 	{ConstantArray[1./n,n], Thread[symbols->#]&/@RandomVariate[probDist, n]}
 ]
@@ -2330,7 +2448,7 @@ SetAttributes[FindPulse,HoldFirst];
 
 
 Unprotect[FindPulse];
-FindPulse[initialGuess_,target_,\[Phi]target_,controlRange_,Hcontrol_,Hint_,OptionsPattern[]]:=Module[
+FindPulse[initialGuess_,target_?MatrixQ,\[Phi]target_,controlRange_,Hcontrol_,Hint_,OptionsPattern[]]:=Module[
 	{
 		minStepSize,improveChk,
 		numControlKnobs,\[Epsilon]max,numControlHams,
