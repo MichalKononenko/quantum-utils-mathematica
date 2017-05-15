@@ -33,6 +33,8 @@ Needs["QUDevTools`"];
 Needs["QuantumSystems`"];
 Needs["Tensor`"];
 
+
+
 (* ::Section:: *)
 (*Results*)
 
@@ -52,27 +54,6 @@ End[];
 
 
 Begin["`UnitTests`"];
-
-(* ::Subsection:: *)
-(*Control Problem Object*)
-
-(* ::Subsubsection:: *)
-(*CanRun*)
-
-TestCase[$RegisteredTests, "ControlProblem:CanRun:BadControlRanges",
-	With[
-		{
-			controlRanges = {{-1, 1}},
-			controlHamiltonians = {IdentityMatrix[3], IdentityMatrix[3]}
-		},
-		Not[CanRun[
-				ControlProblem[
-				ControlRanges -> controlRanges,
-				ControlHamiltonians -> controlHamiltonians
-			]
-		]]
-	]
-]
 
 
 (* ::Subsection:: *)

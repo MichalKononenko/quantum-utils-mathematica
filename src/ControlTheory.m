@@ -22,7 +22,7 @@
 (*THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THEIMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE AREDISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLEFOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIALDAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS ORSERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVERCAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USEOF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.*)
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Preamble*)
 
 
@@ -30,6 +30,7 @@ BeginPackage["ControlTheory`",{"QUDoc`","Tensor`"}];
 
 
 Needs["QUDevTools`"];
+Needs["Visualization`"];
 
 
 $ControlTheoryUsages = LoadUsages[FileNameJoin[{$QUDocumentationPath, "api-doc", "ControlTheory.nb"}]];
@@ -37,6 +38,66 @@ $ControlTheoryUsages = LoadUsages[FileNameJoin[{$QUDocumentationPath, "api-doc",
 
 (* ::Section:: *)
 (*Usage Declarations*)
+
+
+(* ::Subsection:: *)
+(* ControlProblem Manipulation *)
+
+
+Unprotect[
+	ControlProblemHasKey,
+	ControlProblemReplaceKey,
+	ControlProblemRemoveKeys
+];
+
+
+AssignUsage[
+	{
+		ControlProblemHasKey,
+		ControlProblemReplaceKey,
+		ControlProblemRemoveKeys
+	},
+	$ControlTheoryUsages
+];
+
+
+(* ::Subsection:: *)
+(*ControlProblem*)
+
+
+(* ::Text:: *)
+(* This section describes a problem for numerical optimal quantum control *)
+
+
+(* ::Subsubsection:: *)
+(*ControlProblem object and parameters*)
+
+
+Unprotect[
+	ControlProblem,
+	ControlHamiltonians,
+	InternalHamiltonian,
+	Target,
+	DesiredFidelity,
+	ParameterDistribution,
+	ControlRanges,
+	DistortionOperator
+];
+
+
+AssignUsage[ControlProblem, $ControlTheoryUsages];
+
+
+(* ::Subsubsection:: *)
+(*CanRun*)
+
+
+Unprotect[
+	IsWellPosed
+];
+
+
+AssignUsage[IsWellPosed, $ControlTheoryUsages];
 
 
 (* ::Subsection::Closed:: *)
@@ -94,6 +155,104 @@ GenerateLieAlgebra::moreargs = "At least two input generators required. Remember
 
 
 Begin["`Private`"];
+
+
+(* ::Subsection:: *)
+(*ControlProblem Manipulation*)
+
+
+ControlProblemHasKey[
+	problem_ControlProblem, key_
+] := HasKey[problem, key];
+
+ControlProblemReplaceKey[
+	problem_ControlProblem, header_, newval_
+] := ReplaceKey[problem, header, newval];
+
+ControlProblemRemoveKeys[
+	problem_ControlProblem, headers__
+] := RemoveKeys[problem, headers];
+
+
+(* ::Subsection:: *)
+(*ControlProblem*)
+
+
+(* ::Subsubsection:: *)
+(*ControlProblem object and parameters*)
+
+
+ControlProblem/:ControlProblem[args___][key_] := Association[args][key];
+
+
+ControlProblem/:Format[ControlProblem[args__Rule]] := Module[{modProblem},
+	modProblem=ControlProblem[args];
+	modProblem=ReplaceKey[modProblem, CanRun, ToString[CanRun[modProblem]]];
+	If[
+		HasKey[modProblem, ControlHamiltonians], 
+		modProblem=ReplaceKey[modProblem, ControlHamiltonians, MatrixListForm[modProblem[ControlHamiltonians]]]
+	];
+	If[
+		HasKey[modProblem,InternalHamiltonian],
+		modProblem=ReplaceKey[modProblem,InternalHamiltonian,MatrixForm[modProblem[InternalHamiltonian]]]
+	];
+	If[
+		HasKey[modProblem,Target]&&MatrixQ[modProblem[Target]],
+		modProblem=ReplaceKey[modProblem,Target,MatrixForm[modProblem[Target]]]
+	];
+	If[
+		HasKey[modProblem, DesiredFidelity],
+		modProblem=ReplaceKey[modProblem, DesiredFidelity, ToString[modProblem[DesiredFidelity]]]
+	];
+	If[
+		HasKey[modProblem, ParameterDistribution],
+		modProblem=ReplaceKey[modProblem, ParameterDistribution, modProblem[ParameterDistribution]]
+	];
+	If[
+		HasKey[modProblem, DistortionOperator],
+		modProblem=ReplaceKey[modProblem, DistortionOperator, modProblem[DistortionOperator]]
+	];
+	Grid[
+		Prepend[
+			{#,#/.List@@modProblem}&/@
+			{DesiredFidelity,Target,InternalHamiltonian,ControlHamiltonians,ParameterDistribution,CanRun, DistortionOperator},
+			{Head,Value}
+		],
+		Alignment->{Left,Top},
+		Dividers->All,
+		ItemSize->{{13,32},Automatic},
+		Background->{{LightBlue,None},{LightGreen,None}},
+		ItemStyle->{Automatic,{"Subsubsubsection"}},
+		Spacings->{2,.8}
+	]
+];
+
+
+
+(* ::Subsubsection:: *)
+(*IsWellPosed*)
+
+
+ControlRangesEqualToNumberOfHamiltonians[problem_] := If[
+	And[HasKey[problem, ControlHamiltonians], HasKey[problem, InternalHamiltonian]],	
+	Equal[
+		Length[problem[ControlRanges]], Length[problem[ControlHamiltonians]]
+	],
+	False
+]
+
+HamiltoniansEqualInSize[problem_] := Equal @@ Map[
+	Dimensions, Join[problem[ControlHamiltonians], problem[InternalHamiltonian]]
+];
+
+IsWellPosed[problem_] := If[
+	And[HasKey[problem, ControlHamiltonians], HasKey[problem, InternalHamiltonian]], 
+	And[
+		ControlRangesEqualToNumberOfHamiltonians[problem],
+		HamiltoniansEqualInSize[problem];
+	],
+	False
+];
 
 
 (* ::Subsection::Closed:: *)

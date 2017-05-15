@@ -34,6 +34,7 @@ BeginPackage["ControlTheoryTests`"];
 
 
 Needs["QUDevTools`"];
+Needs["QuantumSystems`"];
 Needs["ControlTheory`"];
 
 
@@ -51,14 +52,28 @@ $TestResults := RunTest[$RegisteredTests];
 End[];
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Unit Tests*)
 
 
 Begin["`UnitTests`"];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
+(*ControlProblem*)
+
+
+TestCase[$RegisteredTests, "ControlProblem:Initialization",
+	With[
+		{
+			target = RandomUnitary[8]
+		},
+		Equal[target, ControlProblem[Target -> target][Target]]
+	]
+];
+
+
+(* ::Subsection:: *)
 (*End*)
 
 

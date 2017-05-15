@@ -22,11 +22,11 @@
 (*THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THEIMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE AREDISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLEFOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIALDAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS ORSERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVERCAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USEOF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.*)
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Preamble*)
 
 
-BeginPackage["GRAPE`",{"QUDoc`"}];
+BeginPackage["GRAPE`",{"QUDoc`", "ControlTheory`"}];
 
 
 (* ::Text:: *)
@@ -46,7 +46,7 @@ $GRAPEUsages = LoadUsages[FileNameJoin[{$QUDocumentationPath, "api-doc", "GRAPE.
 (*Usage Declaration*)
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Options*)
 
 
@@ -73,28 +73,7 @@ AssignUsage[
 ];
 
 
-(* ::Subsection::Closed:: *)
-(*Control Problems*)
-
-
-Unprotect[
-	ControlProblem,
-	ControlRanges,
-	DesiredFidelity,
-	CanRun
-];
-
-
-AssignUsage[
-	{
-		ControlProblem,
-		CanRun
-	},
-	$GRAPEUsages
-]
-
-
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Pulses*)
 
 
@@ -123,7 +102,7 @@ AssignUsage[
 ];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Utility Function and Targets*)
 
 
@@ -144,7 +123,7 @@ AssignUsage[
 ];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Distortions*)
 
 
@@ -349,104 +328,6 @@ Begin["`Private`"];
 
 
 (* ::Subsection:: *)
-(*Abstract Object Manipulation*)
-
-
-RemoveKeys[object_, headers__]:=Select[object,Not[MemberQ[{headers},#[[1]]]]&];
-
-
-ReplaceKey[object_,header_,newval_]:=Append[RemoveKeys[object,header],header->newval];
-
-
-HasKey[object_,key_]:=MemberQ[object[[All,1]],key];
-
-
-(* ::Subsection:: *)
-(*Control Problems*)
-
-
-(* ::Subsubsection:: *)
-(*Control Problem Object*)
-
-Options[ControlProblem] = {
-	ControlRanges -> {{-1, 1}},
-	ControlHamiltonians -> IdentityMatrix[2],
-	InternalHamiltonian -> IdentityMatrix[2]
-}
-
-
-ControlProblem/:ControlProblem[args___][key_] := Association[args][key];
-
-
-Unprotect@ControlProblem
-
-(* ::Text:: *)
-(* Describes how to print out the Control Problem *)
-
-ControlProblem/:Format[ControlProblem[args__Rule]] := Module[{modProblem},
-	modProblem=ControlProblem[args];
-	If[
-		HasKey[modProblem, ControlHamiltonians], 
-		modProblem=ReplaceKey[modProblem, ControlHamiltonians, MatrixListForm[modProblem[ControlHamiltonians]]]
-	];
-	If[
-		HasKey[modProblem,InternalHamiltonian],
-		modProblem=ReplaceKey[modProblem,InternalHamiltonian,MatrixForm[modProblem[InternalHamiltonian]]]
-	];
-	If[
-		HasKey[modProblem,Target]&&MatrixQ[modProblem[Target]],
-		modProblem=ReplaceKey[modProblem,Target,MatrixForm[modProblem[Target]]]
-	];
-	modProblem=ReplaceKey[modProblem, CanRun, ToString[CanRun[modProblem]]];
-	If[
-		HasKey[modProblem, DesiredFidelity],
-		modProblem=ReplaceKey[modProblem, DesiredFidelity, ToString[modProblem[DesiredFidelity]]]
-	];
-	If[
-		HasKey[modProblem, ParameterDistribution],
-		modProblem=ReplaceKey[modProblem, ParameterDistribution, modProblem[ParameterDistribution]]
-	];
-	Grid[
-		Prepend[
-			{#,#/.List@@modProblem}&/@
-			{DesiredFidelity,PenaltyValue,ExitMessage,Target,InternalHamiltonian,ControlHamiltonians,AmplitudeRange,TimeSteps,Pulse,ParameterDistribution,DistortionOperator,CanRun},
-			{Head,Value}
-		],
-		Alignment->{Left,Top},
-		Dividers->All,
-		ItemSize->{{13,32},Automatic},
-		Background->{{LightBlue,None},{LightGreen,None}},
-		ItemStyle->{Automatic,{"Subsubsubsection"}},
-		Spacings->{2,.8}
-	]
-];
-
-(* ::Subsubsection:: *)
-(*CanRun*)
-
-ControlRangesEqualToNumberOfHamiltonians[problem_] := If[
-	And[HasKey[problem, ControlHamiltonians], HasKey[problem, InternalHamiltonian]],	
-	Equal[
-		Length[problem[ControlRanges]], Length[problem[ControlHamiltonians]]
-	],
-	False
-]
-
-HamiltoniansEqualInSize[problem_] := Equal @@ Map[
-	Dimensions, Join[problem[ControlHamiltonians], problem[InternalHamiltonian]]
-];
-
-CanRun[problem_] := If[
-	And[HasKey[problem, ControlHamiltonians], HasKey[problem, InternalHamiltonian]], 
-	And[
-		ControlRangesEqualToNumberOfHamiltonians[problem],
-		HamiltoniansEqualInSize[problem];
-	],
-	False
-];
-
-
-(* ::Subsection:: *)
 (*Pulses*)
 
 
@@ -622,7 +503,7 @@ GaussianTailsPulse[dt_,T_,riseTime_,Max->max_]:=Module[
 ]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Legalization and Normalization*)
 
 
@@ -802,7 +683,7 @@ UtilityGradient[pulse_,Hint_,Hcontrol_,target_DensityTransfer]:=
 	];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Distortions*)
 
 
@@ -1003,7 +884,7 @@ ScaleDistortion[distortion_DistortionOperator,timeScale_,amplitudeScale_List]:=D
 ]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Identity Distortion*)
 
 
@@ -1308,7 +1189,7 @@ FastExponentialDistortion[\[Tau]c_,mult_,extraSteps_]:=DistortionOperator[
 ]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*IQ Distortion*)
 
 
@@ -1356,7 +1237,7 @@ NonlinearTransferDistortion[gainFcn_]:=DistortionOperator[
 ]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Differential Equation Distortions*)
 
 

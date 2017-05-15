@@ -10,10 +10,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       158,          7]
-NotebookDataLength[     40898,       1187]
-NotebookOptionsPosition[     36144,       1032]
-NotebookOutlinePosition[     37977,       1089]
-CellTagsIndexPosition[     37521,       1075]
+NotebookDataLength[     44657,       1302]
+NotebookOptionsPosition[     38814,       1114]
+NotebookOutlinePosition[     41122,       1184]
+CellTagsIndexPosition[     40540,       1167]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -91,6 +91,93 @@ This package provides tools commonly used in quantum control theory.\
    3.634308056127495*^9, {3.634308094880814*^9, 3.634308095527034*^9}, {
    3.634308126663557*^9, 3.6343082843108683`*^9}, {3.634309233626235*^9, 
    3.6343092358176537`*^9}, {3.634329976232435*^9, 3.63432998670681*^9}}]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["ControlProblem", "Section",
+ CellChangeTimes->{{3.703427027783092*^9, 3.703427029496587*^9}}],
+
+Cell["\<\
+ControlProblem is a generic head that stores the instance of a Control \
+Problem. This data structure stores the parameters for a quantum control \
+problem.\
+\>", "Text",
+ CellChangeTimes->{{3.70342733320012*^9, 3.7034273861547117`*^9}},
+ CellTags->"ControlProblem::usage"],
+
+Cell[CellGroupData[{
+
+Cell["Object Manipulation", "Subsection",
+ CellChangeTimes->{{3.7036060228087883`*^9, 3.703606025075733*^9}}],
+
+Cell[CellGroupData[{
+
+Cell["ControlProblemHasKey", "Subsubsection",
+ CellChangeTimes->{{3.703606286553403*^9, 3.7036062903563766`*^9}}],
+
+Cell[TextData[{
+ StyleBox["ControlProblemHasKey[problem]", "Input",
+  FontFamily->"Source Code Pro",
+  FontSize->12],
+ "returns ",
+ StyleBox["True", "Input"],
+ " if the ",
+ StyleBox["key", "Input"],
+ " has been defined in the problem, and ",
+ StyleBox["False", "Input"],
+ " if not."
+}], "Text",
+ CellChangeTimes->{{3.703606292749053*^9, 3.703606308087903*^9}, {
+   3.7036069273285227`*^9, 3.703606936591837*^9}, {3.703608042445158*^9, 
+   3.703608070886735*^9}, 3.703610596993082*^9},
+ CellTags->"ControlProblemHasKey::usage"]
+}, Open  ]],
+
+Cell["ControlProblem", "Subsubsection",
+ CellChangeTimes->{{3.703610922805552*^9, 3.703610924336808*^9}}]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["IsWellPosed", "Subsection",
+ CellChangeTimes->{{3.703518558367775*^9, 3.703518559064418*^9}, {
+  3.70360886768039*^9, 3.703608869125527*^9}}],
+
+Cell[TextData[{
+ StyleBox["IsWellPosed[controlProblem]", "Input"],
+ " returns ",
+ StyleBox["True ", "Input"],
+ "if the ",
+ StyleBox["controlProblem", "Input"],
+ " is well-posed. For a ",
+ StyleBox["controlProblem", "Input"],
+ " to be well-posed, the following conditions must hold"
+}], "Text",
+ CellChangeTimes->{{3.7035185679438877`*^9, 3.7035186525856123`*^9}, {
+  3.7035187200537367`*^9, 3.703518781376194*^9}, {3.70351881591574*^9, 
+  3.703518840651786*^9}, {3.703527975680684*^9, 3.7035279963590918`*^9}, {
+  3.703608132284881*^9, 3.7036081731170883`*^9}, {3.703608415500526*^9, 
+  3.7036084681331043`*^9}},
+ CellTags->"IsWellPosed::usage"],
+
+Cell[TextData[{
+ "The number of ",
+ StyleBox["controlRanges", "Input"],
+ ", defined in a list like ",
+ StyleBox["{{lowerLimit1, upperLimit1}, ...}", "Input"],
+ ", must match the number of ",
+ StyleBox["ControlHamiltonians", "Input"],
+ " in ",
+ StyleBox["controlProblem[ControlHamiltonians]\n", "Input"],
+ "The ",
+ StyleBox["Dimensions", "Input"],
+ " of each of the control Hamiltonians must match the dimensions of the "
+}], "Text",
+ CellChangeTimes->{{3.703608470939453*^9, 3.703608485333061*^9}, {
+  3.703608659088808*^9, 3.703608721740601*^9}, {3.703608843544477*^9, 
+  3.7036088950124397`*^9}, {3.70360901814537*^9, 3.7036090470710506`*^9}}]
+}, Open  ]]
 }, Open  ]],
 
 Cell[CellGroupData[{
@@ -620,12 +707,10 @@ operators in ",
  Cell[BoxData[
   FormBox[
    RowBox[{
-    SuperscriptBox["d", "2"], "-", "1"}], TraditionalForm]],
-  FormatType->"TraditionalForm"],
+    SuperscriptBox["d", "2"], "-", "1"}], TraditionalForm]]],
  ", where ",
  Cell[BoxData[
-  FormBox["d", TraditionalForm]],
-  FormatType->"TraditionalForm"],
+  FormBox["d", TraditionalForm]]],
  " is the dimension the Lie algebra\[CloseCurlyQuote]s elements act on."
 }], "Text",
  CellDingbat->"\[FilledSquare]",
@@ -655,8 +740,7 @@ for the hermitian algebra \[ScriptCapitalA] in ",
          SubscriptBox["H", "1"]}], ",", 
         RowBox[{"i", "*", 
          SubscriptBox["H", "2"]}], ",", "..."}], "\[RightAngleBracket]"}], 
-      "\[RightAngleBracket]"}]}]}], TraditionalForm]],
-  FormatType->"TraditionalForm"],
+      "\[RightAngleBracket]"}]}]}], TraditionalForm]]],
  " where \[ScriptCapitalB] is actually a skew hermitian algebra. This is a \
 simple though subtle point. Default is ",
  StyleBox["True", "Input"],
@@ -732,8 +816,7 @@ full control; we require a Lie algebra dimension of at least ",
   FormBox[
    RowBox[{
     RowBox[{
-     SuperscriptBox["2", "2"], "-", "1"}], "=", "3"}], TraditionalForm]],
-  FormatType->"TraditionalForm"],
+     SuperscriptBox["2", "2"], "-", "1"}], "=", "3"}], TraditionalForm]]],
  "."
 }], "Text",
  CellChangeTimes->{{3.634333197907205*^9, 3.6343332289873123`*^9}, {
@@ -839,8 +922,7 @@ we still have full control (we need dimension ",
   FormBox[
    RowBox[{
     RowBox[{
-     SuperscriptBox["4", "2"], "-", "1"}], "=", "15"}], TraditionalForm]],
-  FormatType->"TraditionalForm"],
+     SuperscriptBox["4", "2"], "-", "1"}], "=", "15"}], TraditionalForm]]],
  ")."
 }], "Text",
  CellChangeTimes->{{3.634333197907205*^9, 3.6343332289873123`*^9}, {
@@ -1030,9 +1112,10 @@ doi:10.1103/PhysRevA.78.010303\
 }, Open  ]]
 }, Open  ]]
 },
-WindowSize->{1280, 972},
-WindowMargins->{{87, Automatic}, {-112, Automatic}},
-FrontEndVersion->"10.0 for Linux x86 (64-bit) (June 27, 2014)",
+WindowSize->{916, 1012},
+WindowMargins->{{Automatic, 22}, {22, Automatic}},
+ShowCellTags->True,
+FrontEndVersion->"11.0 for Linux x86 (64-bit) (September 21, 2016)",
 StyleDefinitions->"Default.nb"
 ]
 (* End of Notebook Content *)
@@ -1040,50 +1123,62 @@ StyleDefinitions->"Default.nb"
 (* Internal cache information *)
 (*CellTagsOutline
 CellTagsIndex->{
+ "ControlProblem::usage"->{
+  Cell[3788, 100, 283, 6, 65, "Text",
+   CellTags->"ControlProblem::usage"]},
+ "ControlProblemHasKey::usage"->{
+  Cell[4346, 118, 526, 15, 45, "Text",
+   CellTags->"ControlProblemHasKey::usage"]},
+ "IsWellPosed::usage"->{
+  Cell[5179, 146, 645, 15, 65, "Text",
+   CellTags->"IsWellPosed::usage"]},
  "GenerateLieAlgebra::usage"->{
-  Cell[3846, 101, 2719, 74, 236, "Text",
+  Cell[6681, 188, 2719, 74, 287, "Text",
    CellTags->"GenerateLieAlgebra::usage"]},
  "LieOperation::usage"->{
-  Cell[19187, 514, 254, 6, 31, "Text",
+  Cell[22022, 601, 254, 6, 31, "Text",
    CellTags->"LieOperation::usage"]},
  "VSField::usage"->{
-  Cell[19579, 528, 837, 24, 53, "Text",
+  Cell[22414, 615, 837, 24, 53, "Text",
    CellTags->"VSField::usage"]},
  "LinearIndependenceFun::usage"->{
-  Cell[20568, 560, 860, 28, 74, "Text",
+  Cell[23403, 647, 860, 28, 74, "Text",
    CellTags->"LinearIndependenceFun::usage"]},
  "StoppingDepth::usage"->{
-  Cell[21574, 596, 308, 8, 32, "Text",
+  Cell[24409, 683, 308, 8, 32, "Text",
    CellTags->"StoppingDepth::usage"]},
  "StoppingDimension::usage"->{
-  Cell[22030, 612, 683, 20, 54, "Text",
+  Cell[24865, 699, 617, 18, 54, "Text",
    CellTags->"StoppingDimension::usage"]},
  "AssumeHamiltonians::usage"->{
-  Cell[22861, 640, 1036, 27, 54, "Text",
+  Cell[25630, 725, 1003, 26, 54, "Text",
    CellTags->"AssumeHamiltonians::usage"]},
  "GeneratorSymbols::usage"->{
-  Cell[24044, 675, 545, 16, 53, "Text",
+  Cell[26780, 759, 545, 16, 53, "Text",
    CellTags->"GeneratorSymbols::usage"]},
  "G::usage"->{
-  Cell[24592, 693, 314, 9, 32, "Text",
+  Cell[27328, 777, 314, 9, 32, "Text",
    CellTags->"G::usage"]},
  "NumericalLieAlgebra::usage"->{
-  Cell[25056, 710, 262, 7, 32, "Text",
+  Cell[27792, 794, 262, 7, 32, "Text",
    CellTags->"NumericalLieAlgebra::usage"]}
  }
 *)
 (*CellTagsIndex
 CellTagsIndex->{
- {"GenerateLieAlgebra::usage", 36448, 1042},
- {"LieOperation::usage", 36559, 1045},
- {"VSField::usage", 36657, 1048},
- {"LinearIndependenceFun::usage", 36765, 1051},
- {"StoppingDepth::usage", 36879, 1054},
- {"StoppingDimension::usage", 36988, 1057},
- {"AssumeHamiltonians::usage", 37103, 1060},
- {"GeneratorSymbols::usage", 37218, 1063},
- {"G::usage", 37315, 1066},
- {"NumericalLieAlgebra::usage", 37414, 1069}
+ {"ControlProblem::usage", 39137, 1125},
+ {"ControlProblemHasKey::usage", 39249, 1128},
+ {"IsWellPosed::usage", 39359, 1131},
+ {"GenerateLieAlgebra::usage", 39467, 1134},
+ {"LieOperation::usage", 39578, 1137},
+ {"VSField::usage", 39676, 1140},
+ {"LinearIndependenceFun::usage", 39784, 1143},
+ {"StoppingDepth::usage", 39898, 1146},
+ {"StoppingDimension::usage", 40007, 1149},
+ {"AssumeHamiltonians::usage", 40122, 1152},
+ {"GeneratorSymbols::usage", 40237, 1155},
+ {"G::usage", 40334, 1158},
+ {"NumericalLieAlgebra::usage", 40433, 1161}
  }
 *)
 (*NotebookFileOutline
@@ -1105,86 +1200,106 @@ Cell[3153, 83, 110, 1, 51, "Section"],
 Cell[3266, 86, 383, 6, 31, "Text"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[3686, 97, 157, 2, 65, "Section"],
-Cell[3846, 101, 2719, 74, 236, "Text",
+Cell[3686, 97, 99, 1, 65, "Section"],
+Cell[3788, 100, 283, 6, 65, "Text",
+ CellTags->"ControlProblem::usage"],
+Cell[CellGroupData[{
+Cell[4096, 110, 109, 1, 45, "Subsection"],
+Cell[CellGroupData[{
+Cell[4230, 115, 113, 1, 35, "Subsubsection"],
+Cell[4346, 118, 526, 15, 45, "Text",
+ CellTags->"ControlProblemHasKey::usage"]
+}, Open  ]],
+Cell[4887, 136, 105, 1, 35, "Subsubsection"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[5029, 142, 147, 2, 44, "Subsection"],
+Cell[5179, 146, 645, 15, 65, "Text",
+ CellTags->"IsWellPosed::usage"],
+Cell[5827, 163, 645, 15, 72, "Text"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[6521, 184, 157, 2, 65, "Section"],
+Cell[6681, 188, 2719, 74, 287, "Text",
  CellTags->"GenerateLieAlgebra::usage"],
 Cell[CellGroupData[{
-Cell[6590, 179, 100, 1, 35, "Subsubsection"],
-Cell[6693, 182, 210, 4, 31, "Text"],
-Cell[6906, 188, 154, 3, 31, "Text"]
+Cell[9425, 266, 100, 1, 35, "Subsubsection"],
+Cell[9528, 269, 210, 4, 31, "Text"],
+Cell[9741, 275, 154, 3, 31, "Text"]
 }, Closed]],
 Cell[CellGroupData[{
-Cell[7097, 196, 97, 1, 37, "Subsection"],
-Cell[7197, 199, 11859, 308, 748, "Text"],
+Cell[9932, 283, 97, 1, 37, "Subsection"],
+Cell[10032, 286, 11859, 308, 748, "Text"],
 Cell[CellGroupData[{
-Cell[19081, 511, 103, 1, 35, "Subsubsection"],
-Cell[19187, 514, 254, 6, 31, "Text",
+Cell[21916, 598, 103, 1, 35, "Subsubsection"],
+Cell[22022, 601, 254, 6, 31, "Text",
  CellTags->"LieOperation::usage"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[19478, 525, 98, 1, 35, "Subsubsection"],
-Cell[19579, 528, 837, 24, 53, "Text",
+Cell[22313, 612, 98, 1, 35, "Subsubsection"],
+Cell[22414, 615, 837, 24, 53, "Text",
  CellTags->"VSField::usage"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[20453, 557, 112, 1, 35, "Subsubsection"],
-Cell[20568, 560, 860, 28, 74, "Text",
+Cell[23288, 644, 112, 1, 35, "Subsubsection"],
+Cell[23403, 647, 860, 28, 74, "Text",
  CellTags->"LinearIndependenceFun::usage"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[21465, 593, 106, 1, 35, "Subsubsection"],
-Cell[21574, 596, 308, 8, 32, "Text",
+Cell[24300, 680, 106, 1, 35, "Subsubsection"],
+Cell[24409, 683, 308, 8, 32, "Text",
  CellTags->"StoppingDepth::usage"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[21919, 609, 108, 1, 35, "Subsubsection"],
-Cell[22030, 612, 683, 20, 54, "Text",
+Cell[24754, 696, 108, 1, 35, "Subsubsection"],
+Cell[24865, 699, 617, 18, 54, "Text",
  CellTags->"StoppingDimension::usage"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[22750, 637, 108, 1, 35, "Subsubsection"],
-Cell[22861, 640, 1036, 27, 54, "Text",
+Cell[25519, 722, 108, 1, 35, "Subsubsection"],
+Cell[25630, 725, 1003, 26, 54, "Text",
  CellTags->"AssumeHamiltonians::usage"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[23934, 672, 107, 1, 35, "Subsubsection"],
-Cell[24044, 675, 545, 16, 53, "Text",
+Cell[26670, 756, 107, 1, 35, "Subsubsection"],
+Cell[26780, 759, 545, 16, 53, "Text",
  CellTags->"GeneratorSymbols::usage"],
-Cell[24592, 693, 314, 9, 32, "Text",
+Cell[27328, 777, 314, 9, 32, "Text",
  CellTags->"G::usage"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[24943, 707, 110, 1, 35, "Subsubsection"],
-Cell[25056, 710, 262, 7, 32, "Text",
+Cell[27679, 791, 110, 1, 35, "Subsubsection"],
+Cell[27792, 794, 262, 7, 32, "Text",
  CellTags->"NumericalLieAlgebra::usage"]
 }, Open  ]]
 }, Closed]],
 Cell[CellGroupData[{
-Cell[25367, 723, 151, 2, 37, "Subsection"],
-Cell[25521, 727, 452, 12, 33, "Text"],
+Cell[28103, 807, 151, 2, 37, "Subsection"],
+Cell[28257, 811, 419, 11, 33, "Text"],
 Cell[CellGroupData[{
-Cell[25998, 743, 855, 18, 99, "Input"],
-Cell[26856, 763, 334, 4, 23, "Print"],
-Cell[27193, 769, 513, 13, 32, "Output"],
-Cell[27709, 784, 1508, 39, 74, "Output"]
+Cell[28701, 826, 855, 18, 99, "Input"],
+Cell[29559, 846, 334, 4, 23, "Print"],
+Cell[29896, 852, 513, 13, 32, "Output"],
+Cell[30412, 867, 1508, 39, 74, "Output"]
 }, Open  ]]
 }, Closed]],
 Cell[CellGroupData[{
-Cell[29266, 829, 145, 2, 37, "Subsection"],
-Cell[29414, 833, 665, 15, 53, "Text"],
+Cell[31969, 912, 145, 2, 37, "Subsection"],
+Cell[32117, 916, 632, 14, 53, "Text"],
 Cell[CellGroupData[{
-Cell[30104, 852, 1119, 25, 77, "Input"],
-Cell[31226, 879, 365, 5, 23, "Print"],
-Cell[31594, 886, 2802, 89, 77, "Output"]
+Cell[32774, 934, 1119, 25, 77, "Input"],
+Cell[33896, 961, 365, 5, 23, "Print"],
+Cell[34264, 968, 2802, 89, 77, "Output"]
 }, Open  ]],
-Cell[34411, 978, 190, 4, 31, "Text"],
+Cell[37081, 1060, 190, 4, 31, "Text"],
 Cell[CellGroupData[{
-Cell[34626, 986, 903, 23, 77, "Input"],
-Cell[35532, 1011, 141, 2, 23, "Print"]
+Cell[37296, 1068, 903, 23, 77, "Input"],
+Cell[38202, 1093, 141, 2, 23, "Print"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[35710, 1018, 101, 1, 35, "Subsubsection"],
-Cell[35814, 1021, 278, 5, 51, "Text"]
+Cell[38380, 1100, 101, 1, 35, "Subsubsection"],
+Cell[38484, 1103, 278, 5, 51, "Text"]
 }, Open  ]]
 }, Closed]]
 }, Open  ]]
@@ -1193,4 +1308,3 @@ Cell[35814, 1021, 278, 5, 51, "Text"]
 ]
 *)
 
-(* End of internal cache information *)

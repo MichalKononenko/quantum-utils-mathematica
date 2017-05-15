@@ -148,6 +148,15 @@ RunTest::usage = "RunTest[name->expr] runs an instance of TestCase and returns i
 AssignUsage::nousg = "No usage message in `1` for symbol `2` found; using a blank message instead.";
 
 
+(* ::Subsection:: *)
+(*Object Manipulation*)
+
+
+HasKey::usage = "HasKey[object_, key_] returns True if the object has the key, and False if not";
+ReplaceKey::usage = "ReplaceKey[object_, header_, newval_] replaces the value object[key] with newval";
+RemoveKeys::usage = "RemoveKeys[object_, keys__] removes the desired keys"
+
+
 (* ::Section:: *)
 (*Implementation*)
 
@@ -425,6 +434,19 @@ RunTest[name_ -> expr_] := Module[{result},
 		_ -> "?"
 	})
 ];
+
+
+(* ::Subsection:: *)
+(*Object Manipulation*)
+
+
+RemoveKeys[object_, headers__]:=Select[object,Not[MemberQ[{headers},#[[1]]]]&];
+
+
+ReplaceKey[object_,header_,newval_]:=Append[RemoveKeys[object,header],header->newval];
+
+
+HasKey[object_,key_]:=MemberQ[object[[All,1]],key];
 
 
 (* ::Subsection::Closed:: *)
